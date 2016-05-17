@@ -11,16 +11,20 @@
 int reservarMemoria (int, int);
 int* vincularMemoria(int);
 void desvincularMemoria (int, int*);
+void errorFatal(char *);
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]){
     if (argc != 2) {
         fprintf(stderr, "Error: Ingresar los parametros. Forma correcta: %s <cantLineas>\n", argv[0]);
         exit(1);
     }
-    key_t llave = 5432;
+    key_t llave = 5432; 
     int shmId;
+
     int *datos;
+    int *tamano;
+    char *bandera; 
+
     shmId = reservarMemoria(llave, atoi(argv[1]));
     datos = vincularMemoria(shmId);
     printf("---------------------------\n");
@@ -29,6 +33,7 @@ int main(int argc, char *argv[])
     printf("+ Total lineas reservadas: %s\n", argv[1]);
     printf("+ Total bytes reservados: %d\n", (sizeof(int) * (atoi(argv[1]) + 1)));
     printf("---------------------------\n");
+
     desvincularMemoria(shmId, datos);
     return 0;
 }
