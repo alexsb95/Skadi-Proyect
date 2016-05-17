@@ -60,6 +60,8 @@ int main(int argc, char *argv[]){
         contHilo++;
     }
 
+    finiSemarofoMemoria()
+
     return 0;
 }
 
