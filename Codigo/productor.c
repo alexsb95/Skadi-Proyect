@@ -25,6 +25,15 @@ void ImprimirMenu();
 void *CorrerHilo(void *);
 void errorFatal(char *);
 
+
+void iniSemarofoMemoria();
+void finiSemarofoMemoria();
+
+
+#define BUFFSIZE     50
+pthread_mutex_t semaforoMemoria[BUFFSIZE];
+int memoria[BUFFSIZE];
+
 int main(int argc, char *argv[]){
     if (argc != 1) {
         fprintf(stderr, "Error: Ingresar los parametros. Forma correcta: ./%s\n", argv[0]);
@@ -38,6 +47,8 @@ int main(int argc, char *argv[]){
     datos = vincularMemoria(shmId);
     desvincularMemoria(shmId, datos);*/
 
+    iniSemarofoMemoria();
+
     int contHilo = 0;
     pthread_t hiloId;
     while(1){
@@ -48,6 +59,7 @@ int main(int argc, char *argv[]){
         sleep(getRandom(LIMINFLINEAS, LIMSUPLINEAS));
         contHilo++;
     }
+
     return 0;
 }
 
@@ -61,10 +73,13 @@ void *CorrerHilo(void *pIdHilo){
 
 	vamos a supone que se duerme el hilo y luego imprime un msj de que va a morir
     */
-    int x = getRandom(LIMINFLINEAS, LIMSUPLINEAS);
-    printf("Estoy vivo! soy el hilo %d y voy a dormir %d segundos antes de morir\n", idHilo, x);
-    sleep(x);
-    printf("Estoy despierto! soy el hilo %d y me llego la hora... adios mundo cruel :(\n", idHilo);
+
+    int tiempoEspera = getRandom(LIMINFLINEAS, LIMSUPLINEAS);
+
+    /*   Usa el algoritmo para buscar / represntado por -> */   int poscision = rand()%(BUFFSIZE-1);
+
+    accederMemoria(idHilo, poscision, tiempoEspera);
+
     pthread_exit(NULL);
 }
 
@@ -117,4 +132,45 @@ void desvincularMemoria (int pShmId, int* pShmDatos){
         errorFatal("No se pudo desvincular la memoria");
     /*  Marca la memoria para ser removida  */
     shmctl(pShmId, IPC_RMID, NULL);
+}
+
+
+void iniSemarofoMemoria (){
+
+    int indice;
+    for(indice=0; indice<BUFFSIZE; indice++){
+         pthread_mutex_init(&semaforoMemoria[indice], NULL);
+    }
+
+     for(indice=0; indice<BUFFSIZE; indice++){
+         buffer[indice]=0;
+    }
+}
+
+void finiSemarofoMemoria(){
+    int indice;
+    for(indice=0; indice<BUFFSIZE; indice++){
+        pthread_mutex_destroy(&semaforoMemoria[indice]);
+    }
+
+}
+void accederMemoria(int pId, int pPoscision, int pTiempo){
+
+    if(pthread_mutex_trylock (&semaforoMemoria[pPoscision])==0){
+        
+        printf("Se bloqueo el campo %i del buffer por el proceso %i \n", pPoscision, pId);
+
+        // Modifica el valor a su id
+        memoria[pPoscision]=pId;
+
+        // Se duerme
+        sleep(pTiempo);
+
+        printf("Se des-bloqueo el campo %i del buffer por el proceso %i\n", pPoscision, pId);
+
+        pthread_mutex_unlock (&semaforoMemoria[pPoscision]);
+
+    }else
+        printf(" No se puedo bloquear el campo %i del buffer por el proceso %i\n", pPoscision, pId);   
+
 }
