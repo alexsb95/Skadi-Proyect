@@ -28,9 +28,9 @@ void errorFatal(char *);
 
 void iniSemarofoMemoria();
 void finiSemarofoMemoria();
+void accederMemoria(int, int, int);
 
-
-#define BUFFSIZE     50
+#define BUFFSIZE     5
 pthread_mutex_t semaforoMemoria[BUFFSIZE];
 int memoria[BUFFSIZE];
 
@@ -143,7 +143,7 @@ void iniSemarofoMemoria (){
     }
 
      for(indice=0; indice<BUFFSIZE; indice++){
-         buffer[indice]=0;
+         memoria[indice]=0;
     }
 }
 
@@ -171,6 +171,6 @@ void accederMemoria(int pId, int pPoscision, int pTiempo){
         pthread_mutex_unlock (&semaforoMemoria[pPoscision]);
 
     }else
-        printf(" No se puedo bloquear el campo %i del buffer por el proceso %i\n", pPoscision, pId);   
+        printf(" No se pudo bloquear el campo %i del buffer por el proceso %i\n", pPoscision, pId);   
 
 }
