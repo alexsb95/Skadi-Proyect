@@ -30,17 +30,42 @@ int main(int argc, char *argv[]){
         fprintf(stderr, "Error: Ingresar los parametros. Forma correcta: ./%s\n", argv[0]);
         exit(1);
     }
-    /*
-    key_t llave = 5432;
-    int shmId;
+    
+    key_t llaveDatos = 5432;
+    key_t llaveTamano = 6543;
+    key_t llaveBandera = 7654;
+    
+    int shmIdDatos;
+    int shmIdTamano;
+    int shmIdBandera;
+
     int *datos;
-    shmId = reservarMemoria(llave, atoi(argv[1]));
-    datos = vincularMemoria(shmId);
-    desvincularMemoria(shmId, datos);*/
+    int *tamano;
+    int *bandera; 
+
+    shmIdTamano = reservarMemoria(llaveTamano, 1);
+    tamano = vincularMemoria(shmIdTamano);
+
+    shmIdBandera = reservarMemoria(llaveBandera, 1);
+    bandera = vincularMemoria(shmIdBandera);
+
+    printf("Tamano: %d\n", (int)*tamano);
+    printf("Bandera: %d\n", (int)*bandera);
+
+    shmIdDatos = reservarMemoria(llaveDatos, (int)*tamano);
+    datos = vincularMemoria(shmIdDatos);
+
+    /*Imprimimos todo lo que obtuvimos de arriba*/
+    printf("---------------------------\n");
+    printf("+ Id memoria compartida: %d\n", shmIdDatos);
+    printf("+ Id bandera compartida: %d\n", shmIdBandera);
+    printf("+ Id tamanio compartida: %d\n", shmIdTamano);
+    printf("+ Total lineas reservadas: %d\n", (int)*tamano);
+    printf("---------------------------\n");
 
     int contHilo = 0;
     pthread_t hiloId;
-    while(1){
+    while((int)*bandera == 1){
     	//creamos el hilo
     	if(pthread_create(&hiloId, NULL,  CorrerHilo, (void *) &contHilo) < 0)
             errorFatal("Error: No sve pudo crear el hilo");
@@ -48,6 +73,7 @@ int main(int argc, char *argv[]){
         sleep(getRandom(LIMINFLINEAS, LIMSUPLINEAS));
         contHilo++;
     }
+    printf("Salio del while por que la bandera cambio\n");
     return 0;
 }
 
@@ -94,14 +120,14 @@ void ImprimirMenu(){
 }
 
 void errorFatal(char* pMensaje){
-        printf("Error: %s .", pMensaje);
+        printf("Error: %s .\n", pMensaje);
         exit(1);
 }
 
 int reservarMemoria (int pLlave, int pCantidad){
     int shmid;
-    if ((shmid = shmget(pLlave, (sizeof(shmid) * (pCantidad + 1)), 0644 | IPC_CREAT)) == -1)
-        errorFatal("No se pudo reservar la memoria");
+    if ((shmid = shmget(pLlave, (sizeof(shmid) * pCantidad), 0644 | IPC_CREAT)) == -1)
+        errorFatal("No se pudo reservar la memoria\n");
     return shmid;
 }
 

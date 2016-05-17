@@ -18,23 +18,45 @@ int main(int argc, char *argv[]){
         fprintf(stderr, "Error: Ingresar los parametros. Forma correcta: %s <cantLineas>\n", argv[0]);
         exit(1);
     }
-    key_t llave = 5432; 
-    int shmId;
+    key_t llaveDatos = 5432;
+    key_t llaveTamano = 6543;
+    key_t llaveBandera = 7654;
+    
+    int shmIdDatos;
+    int shmIdTamano;
+    int shmIdBandera;
 
     int *datos;
     int *tamano;
-    char *bandera; 
+    int *bandera; 
 
-    shmId = reservarMemoria(llave, atoi(argv[1]));
-    datos = vincularMemoria(shmId);
+    shmIdDatos = reservarMemoria(llaveDatos, atoi(argv[1]));
+    datos = vincularMemoria(shmIdDatos);
+
+    shmIdTamano = reservarMemoria(llaveTamano, 1);
+    tamano = vincularMemoria(shmIdTamano);
+
+    shmIdBandera = reservarMemoria(llaveBandera, 1);
+    bandera = vincularMemoria(shmIdBandera);
+
     printf("---------------------------\n");
-    printf("+ Id memoria compartida: %d\n", shmId);
-    printf("+ Id llave compartida: %d\n", llave);
+    printf("+ Id memoria compartida: %d\n", shmIdDatos);
+    printf("+ Id bandera compartida: %d\n", shmIdBandera);
+    printf("+ Id tamanio compartida: %d\n", shmIdTamano);
     printf("+ Total lineas reservadas: %s\n", argv[1]);
-    printf("+ Total bytes reservados: %d\n", (sizeof(int) * (atoi(argv[1]) + 1)));
+    printf("+ Total bytes reservados: %d\n", (sizeof(int) * atoi(argv[1])));
     printf("---------------------------\n");
 
-    desvincularMemoria(shmId, datos);
+    *bandera = 1;
+    *tamano = atoi(argv[1]);
+
+     while((int)*bandera == 1){
+        sleep(1);
+    }
+
+    desvincularMemoria(shmIdDatos, datos);
+    desvincularMemoria(shmIdBandera, tamano);
+    desvincularMemoria(shmIdTamano, bandera );
     return 0;
 }
 
@@ -45,7 +67,7 @@ void errorFatal(char* pMensaje){
 
 int reservarMemoria (int pLlave, int pCantidad){
     int shmid;
-    if ((shmid = shmget(pLlave, (sizeof(shmid) * (pCantidad + 1)), 0644 | IPC_CREAT)) == -1)
+    if ((shmid = shmget(pLlave, (sizeof(shmid) * pCantidad), 0644 | IPC_CREAT)) == -1)
         errorFatal("No se pudo reservar la memoria");
     return shmid;
 }
