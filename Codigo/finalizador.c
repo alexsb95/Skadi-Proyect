@@ -1,11 +1,11 @@
-/*Inicializador byEli*/
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+/*Este es el programa productor byEli*/
+/*No se complique, viva feliz: cc productor.c -o productor -lpthread*/
+#include <time.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 /*Prototipos de funciones*/
 int reservarMemoria (int, int);
@@ -14,8 +14,8 @@ void desvincularMemoria (int, int*);
 void errorFatal(char *);
 
 int main(int argc, char *argv[]){
-    if (argc != 2) {
-        fprintf(stderr, "Error: Ingresar los parametros. Forma correcta: %s <cantLineas>\n", argv[0]);
+    if (argc != 1) {
+        fprintf(stderr, "Error: Ingresar los parametros. Forma correcta: ./%s\n", argv[0]);
         exit(1);
     }
     key_t llaveDatos = 5432;
@@ -30,42 +30,33 @@ int main(int argc, char *argv[]){
     int *tamano;
     int *bandera; 
 
-    shmIdDatos = reservarMemoria(llaveDatos, atoi(argv[1]));
-    datos = vincularMemoria(shmIdDatos);
-
     shmIdTamano = reservarMemoria(llaveTamano, 1);
     tamano = vincularMemoria(shmIdTamano);
 
     shmIdBandera = reservarMemoria(llaveBandera, 1);
     bandera = vincularMemoria(shmIdBandera);
 
-    printf("---------------------------\n");
-    printf("+ Id memoria compartida: %d\n", shmIdDatos);
-    printf("+ Id bandera compartida: %d\n", shmIdBandera);
-    printf("+ Id tamanio compartida: %d\n", shmIdTamano);
-    printf("+ Total lineas reservadas: %s\n", argv[1]);
-    printf("+ Total bytes reservados: %d\n", (sizeof(int) * atoi(argv[1])));
-    printf("---------------------------\n");
+    shmIdDatos = reservarMemoria(llaveDatos, (int)*tamano);
+    datos = vincularMemoria(shmIdDatos);
 
-    *bandera = 1;
-    *tamano = atoi(argv[1]);
+    *bandera = 0;
 
-    ptroDatos = datos;
-    int cont = 0;
+    desvincularMemoria(shmIdDatos, datos);
+    desvincularMemoria(shmIdBandera, bandera);
+    desvincularMemoria(shmIdTamano, tamano);
 
     return 0;
 }
 
 void errorFatal(char* pMensaje){
-        printf("Error: %s .", pMensaje);
+        printf("Error: %s .\n", pMensaje);
         exit(1);
 }
 
 int reservarMemoria (int pLlave, int pCantidad){
     int shmid;
-    printf("pcantidad: %d\n", pCantidad);
     if ((shmid = shmget(pLlave, (sizeof(shmid) * pCantidad), 0644 | IPC_CREAT)) == -1)
-        errorFatal("No se pudo reservar la memoria");
+        errorFatal("No se pudo reservar la memoria\n");
     return shmid;
 }
 
