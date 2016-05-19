@@ -1,4 +1,3 @@
-/*Este es el programa productor byEli*/
 /*No se complique, viva feliz: cc productor.c -o productor -lpthread*/
 #include <time.h>
 #include <sys/types.h>
@@ -25,11 +24,18 @@ void ImprimirMenu();
 void *CorrerHilo(void *);
 void errorFatal(char *);
 
+void iniSemarofoMemoria();
+void finiSemarofoMemoria();
+
+pthread_mutex_t semAccesoMemoria;
+
 int main(int argc, char *argv[]){
     if (argc != 1) {
         fprintf(stderr, "Error: Ingresar los parametros. Forma correcta: ./%s\n", argv[0]);
         exit(1);
     }
+
+    iniSemarofoMemoria();
     
     key_t llaveDatos = 5432;
     key_t llaveTamano = 6543;
@@ -75,23 +81,37 @@ int main(int argc, char *argv[]){
     }
     printf("Salio del while por que la bandera cambio\n");
     return 0;
-}
 
+    finiSemarofoMemoria();
+}
 
 void *CorrerHilo(void *pIdHilo){
     int idHilo = *(int*)pIdHilo;
-    /*
-	aqui se realiza el siguiente algoritmo:
-	- se revisa si hay campo, si lo hay lo mete y se duerme para luego morir cuando termina, 
-	-- sino hay campo, simpelmente muere tragicamente:(
+    int encontroEspacio = 0;
+    int tiempoEspera = getRandom(LIMINFLINEAS, LIMSUPLINEAS);
 
-	vamos a supone que se duerme el hilo y luego imprime un msj de que va a morir
-    */
-    int x = getRandom(LIMINFLINEAS, LIMSUPLINEAS);
-    printf("Estoy vivo! soy el hilo %d y voy a dormir %d segundos antes de morir\n", idHilo, x);
-    sleep(x);
-    printf("Estoy despierto! soy el hilo %d y me llego la hora... adios mundo cruel :(\n", idHilo);
-    pthread_exit(NULL);
+    pthread_mutex_lock (&semAccesoMemoria);
+        printf("El proceso %i bloqueo la memoria\n", idHilo);   
+
+        /*   Usa el algoritmo para buscar */
+
+        printf("El proceso %i des-bloqueo la memoria\n", idHilo);
+    pthread_mutex_unlock (&semAccesoMemoria);
+
+    if (encontroEspacio == 1){
+        sleep(tiempoEspera);
+
+        pthread_mutex_lock (&semAccesoMemoria);
+            printf("El proceso %i bloqueo la memoria\n", idHilo);   
+
+            /*   Desocupa la memoria */
+
+            printf("El proceso %i des-bloqueo la memoria\n", idHilo);
+        pthread_mutex_unlock (&semAccesoMemoria);
+    }else
+        printf("El proceso %i no encontro espacio en la memoria\n",idHilo);
+
+    pthread_exit(NULL);  
 }
 
 int getRandom(int pLimInf, int pLimSup){
@@ -143,4 +163,12 @@ void desvincularMemoria (int pShmId, int* pShmDatos){
         errorFatal("No se pudo desvincular la memoria");
     /*  Marca la memoria para ser removida  */
     shmctl(pShmId, IPC_RMID, NULL);
+}
+
+void iniSemarofoMemoria (){
+    pthread_mutex_init(&semAccesoMemoria, NULL);
+}
+
+void finiSemarofoMemoria(){
+    pthread_mutex_destroy(&semAccesoMemoria);
 }
