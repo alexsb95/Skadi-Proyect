@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+#include "ManejarMemoria.h"
+
 #define LIMINFLINEAS 1
 #define LIMSUPLINEAS 10
 #define LIMINFTIELIN 20
@@ -15,14 +17,10 @@
 #define LIMSUPTIEMPO 60
 
 /*Prototipos de funciones*/
-int reservarMemoria (int, int);
-int* vincularMemoria(int);
-void desvincularMemoria (int, int*);
 int getRandom(int, int);
-int EscogerAlgoritmo();
-void ImprimirMenu();
+int escogerAlgoritmo();
+void imprimirMenu();
 void *CorrerHilo(void *);
-void errorFatal(char *);
 
 void iniSemarofoMemoria();
 void finiSemarofoMemoria();
@@ -62,12 +60,7 @@ int main(int argc, char *argv[]){
     datos = vincularMemoria(shmIdDatos);
 
     /*Imprimimos todo lo que obtuvimos de arriba*/
-    printf("---------------------------\n");
-    printf("+ Id memoria compartida: %d\n", shmIdDatos);
-    printf("+ Id bandera compartida: %d\n", shmIdBandera);
-    printf("+ Id tamanio compartida: %d\n", shmIdTamano);
-    printf("+ Total lineas reservadas: %d\n", (int)*tamano);
-    printf("---------------------------\n");
+    imprimirDatoMemoria(shmIdDatos, shmIdBandera, shmIdTamano, (int)*tamano);
 
     int contHilo = 0;
     pthread_t hiloId;
@@ -119,50 +112,24 @@ int getRandom(int pLimInf, int pLimSup){
 	return r;
 }
 
-int EscogerAlgoritmo(){
+int escogerAlgoritmo(){
 	int opcion = 0;
 	char str[10];
 	while(opcion < 1 || opcion > 3){
-		ImprimirMenu();
+		imprimirMenu();
 		scanf("%s", str);
 		opcion = atoi(str);
 	}
 	return opcion;
 }
 
-void ImprimirMenu(){
+void imprimirMenu(){
 	printf("---------------------------\n");
 	printf("Por favor ingrese uno de los\nsiguientes numeros para escoger\nel algoritmo:\n");
 	printf("1. First Fit\n");
 	printf("2. Best Fit\n");
 	printf("3. Worst Fit\n");
 	printf("---------------------------\nOpcion: ");
-}
-
-void errorFatal(char* pMensaje){
-        printf("Error: %s .\n", pMensaje);
-        exit(1);
-}
-
-int reservarMemoria (int pLlave, int pCantidad){
-    int shmid;
-    if ((shmid = shmget(pLlave, (sizeof(shmid) * pCantidad), 0644 | IPC_CREAT)) == -1)
-        errorFatal("No se pudo reservar la memoria\n");
-    return shmid;
-}
-
-int* vincularMemoria(int pShmId){
-    int* shm;
-    if ((shm = shmat(pShmId, NULL, 0)) == (int *) -1) 
-        errorFatal("No se pudo vincular la memoria");
-    return shm;
-}
-
-void desvincularMemoria (int pShmId, int* pShmDatos){
-    if (shmdt(pShmDatos) == -1) 
-        errorFatal("No se pudo desvincular la memoria");
-    /*  Marca la memoria para ser removida  */
-    shmctl(pShmId, IPC_RMID, NULL);
 }
 
 void iniSemarofoMemoria (){

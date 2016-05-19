@@ -22,7 +22,7 @@ void errorFatal(char* pMensaje){
 int reservarMemoria (int pLlave, int pCantidad){
     int shmid;
     printf("pcantidad: %d\n", pCantidad);
-    if ((shmid = shmget(pLlave, (sizeof(shmid) * pCantidad), 0644 | IPC_CREAT)) == -1)
+    if ((shmid = shmget(pLlave, (sizeof(shmid) * pCantidad), 0777 | IPC_CREAT)) == -1)
         errorFatal("No se pudo reservar la memoria");
     return shmid;
 }
@@ -41,12 +41,12 @@ void desvincularMemoria (int pShmId, int* pShmDatos){
     shmctl(pShmId, IPC_RMID, NULL);
 }
 
-void imprimirDatoMemoria(int pShmIdDatos, int pShmIdBandera, int pShmIdTamano, char* pCantidadLineas){
+void imprimirDatoMemoria(int pShmIdDatos, int pShmIdBandera, int pShmIdTamano, int pCantidadLineas){
     printf("---------------------------\n");
     printf("+ Id memoria compartida: %d\n", pShmIdDatos);
     printf("+ Id bandera compartida: %d\n", pShmIdBandera);
     printf("+ Id tamanio compartida: %d\n", pShmIdTamano);
-    printf("+ Total lineas reservadas: %s\n", pCantidadLineas);
-    printf("+ Total bytes reservados: %d\n", (sizeof(int) * atoi(pCantidadLineas)));
+    printf("+ Total lineas reservadas: %d\n", pCantidadLineas);
+    printf("+ Total bytes reservados: %d\n", (sizeof(int) * pCantidadLineas));
     printf("---------------------------\n");
 }

@@ -39,7 +39,7 @@ int main(int argc, char *argv[]){
     shmIdBandera = reservarMemoria(llaveBandera, 1);
     bandera = vincularMemoria(shmIdBandera);
 
-    imprimirDatoMemoria(shmIdDatos, shmIdBandera, shmIdTamano, argv[1]);
+    imprimirDatoMemoria(shmIdDatos, shmIdBandera, shmIdTamano, atoi(argv[1]));
 
     *bandera = 1;
     *tamano = atoi(argv[1]);
