@@ -1,0 +1,52 @@
+Sincornizacion de procesos
+
+Programas:
+*Inicializador	
+	- input: cantidad de lineas.
+	- Solicita la memoria.
+	- Abre el archivo de la bitacora.
+*Productor:
+	- input: Algoritmo (Best-fit, First-fot, Worse-fit)
+	- Crea un proceso aleatoreo cada 30s-60s, define: 
+		+ cant. linea(1-10).
+		+ cant. tiempo(20s-60s).
+	- Cada proceso busca espacio en memoria, segun el algoritmo.
+	- Si no encuentra espacio se muere.
+	- Solo puede haber un proceso buscando espacio a la vez.
+	- Una vez encontrado el espacio espera el tiempo designado.
+	- Al finalizar devuelde la memoria.
+	- Escribe en la bitacora.
+	- Utiliza una lista de bloques libres
+*Espia:
+	- Tiene prioridad sobre todos los procesos.
+	- Funciones/solicitudes:
+		+ Estado de la memoria.
+		+ Estado de los procesos.
+		+ En el estado debe incluir:
+			- El PID de los que tiene acceso a la memoria.
+			- El PID de los que estan ejecutando.
+			- El PID de los que estan bloqueados.
+
+*Finalizador
+	- Mata los procesos y devuelde los recursos. 
+	- Cierra el archivo de la bitacora.
+		
+Otros
+*Sincronizacion -> Semaforos.
+*Bitacora de eventos:
+	- Registra  todas las acciones. Incluye:
+		+ PID.
+		+ La accion (asignacion y designacion).
+		+ Hora.
+		+ Lineas asigandas.
+*Interfaz
+
+****-------------------------------------------------------------------------------------****
+*Documentacion
+Explicar:
+	+ Tipo de semaforo utilizado.
+	+ Proceso de la sincronizacion.
+	+ Deferencia entre de mmap y shmget
+	+ Algoritmo con mas fragmentacion.
+	+ Casos de prueba - Resultados del programa. Incluye resultado, que sirve y que no, elmentos relevantes.
+	+ Como compilar y ejecutar.
