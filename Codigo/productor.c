@@ -6,8 +6,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <string.h>
 
 #include "ManejarMemoria.h"
+#include "ManejarArchivo.h"
 
 #define LIMINFLINEAS 1
 #define LIMSUPLINEAS 10
@@ -17,13 +19,19 @@
 #define LIMSUPTIEMPO 60
 
 /*Prototipos de funciones*/
+void producirHilos (int*);
+void *CorrerHilo(void *);
 int getRandom(int, int);
 int escogerAlgoritmo();
 void imprimirMenu();
-void *CorrerHilo(void *);
 
 void iniSemarofoMemoria();
 void finiSemarofoMemoria();
+
+char* obtenerTiempoActual();
+
+void escribirAccionBitacora(int , char* , char* , int );
+char* convertirIntAString(int );
 
 pthread_mutex_t semAccesoMemoria;
 
@@ -32,9 +40,8 @@ int main(int argc, char *argv[]){
         fprintf(stderr, "Error: Ingresar los parametros. Forma correcta: ./%s\n", argv[0]);
         exit(1);
     }
-
     iniSemarofoMemoria();
-    
+
     key_t llaveDatos = 5432;
     key_t llaveTamano = 6543;
     key_t llaveBandera = 7654;
@@ -47,35 +54,48 @@ int main(int argc, char *argv[]){
     int *tamano;
     int *bandera; 
 
+    /*      Reserva la memoria para el tamano       */
     shmIdTamano = reservarMemoria(llaveTamano, 1);
     tamano = vincularMemoria(shmIdTamano);
 
+    /*      Reserva la memoria para la bansera       */
     shmIdBandera = reservarMemoria(llaveBandera, 1);
     bandera = vincularMemoria(shmIdBandera);
 
     printf("Tamano: %d\n", (int)*tamano);
     printf("Bandera: %d\n", (int)*bandera);
 
+    /*      Reserva la memoria para los datos       */
     shmIdDatos = reservarMemoria(llaveDatos, (int)*tamano);
     datos = vincularMemoria(shmIdDatos);
 
     /*Imprimimos todo lo que obtuvimos de arriba*/
     imprimirDatoMemoria(shmIdDatos, shmIdBandera, shmIdTamano, (int)*tamano);
 
+    /*      Crea los hilos      */
+    producirHilos(bandera);
+
+    finiSemarofoMemoria();
+
+    return 0;
+}
+
+void producirHilos (int* pBandera){
     int contHilo = 0;
+
     pthread_t hiloId;
-    while((int)*bandera == 1){
-    	//creamos el hilo
-    	if(pthread_create(&hiloId, NULL,  CorrerHilo, (void *) &contHilo) < 0)
+
+    while((int)*pBandera == 1){
+        //creamos el hilo
+        if(pthread_create(&hiloId, NULL,  CorrerHilo, (void *) &contHilo) < 0)
             errorFatal("Error: No sve pudo crear el hilo");
         //dormimos un poco hasta que se cree el proximo
         sleep(getRandom(LIMINFLINEAS, LIMSUPLINEAS));
         contHilo++;
     }
-    printf("Salio del while por que la bandera cambio\n");
-    return 0;
 
-    finiSemarofoMemoria();
+    printf("Salio del while por que la bandera cambio\n");
+
 }
 
 void *CorrerHilo(void *pIdHilo){
@@ -138,4 +158,44 @@ void iniSemarofoMemoria (){
 
 void finiSemarofoMemoria(){
     pthread_mutex_destroy(&semAccesoMemoria);
+}
+
+void escribirAccionBitacora(int pProcesoId, char* pAccion, char* pHora, int pLineasAsigandas){
+    char *buffId = convertirIntAString(pProcesoId);
+    char *buffLinea = convertirIntAString(pLineasAsigandas);
+
+    char * datos = (char *) malloc(1 +sizeof(char*) * (strlen(pAccion)+ strlen(pHora)) + sizeof(int) * 2);
+    strcpy(datos, "Identificador: ");
+    strcat(datos, buffId); 
+    strcat(datos, "\nAccion: ");
+    strcat(datos, pAccion);
+    strcat(datos, "\nHora: ");
+    strcat(datos, pHora);
+    strcat(datos, "Lineas asigandas: ");
+    strcat(datos, buffLinea);
+    strcat(datos, "\n");
+
+    free(datos);
+    free(buffId);
+    free(buffLinea);
+    
+    modificarArchivo("Bitacora.txt", datos);
+}
+
+char* convertirIntAString(int pInt){
+    char *string = malloc(sizeof(char));
+
+    sprintf(string, "%d", pInt);
+
+    return string;
+}
+
+char* obtenerTiempoActual(){
+    time_t rawtime;
+    struct tm *timeinfo;
+
+    time ( &rawtime );
+    timeinfo = localtime ( &rawtime );
+
+    return  asctime(timeinfo) ;
 }

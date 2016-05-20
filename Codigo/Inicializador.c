@@ -5,11 +5,12 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
+#include <string.h>
+
 #include "ManejarMemoria.h"
 #include "ManejarArchivo.h"
 
 /*Prototipos de funciones*/
-
 
 int main(int argc, char *argv[]){
     if (argc != 2) {
@@ -30,23 +31,25 @@ int main(int argc, char *argv[]){
     int *tamano;
     int *bandera; 
 
+    /*      Reserva la memoria para los datos       */
     shmIdDatos = reservarMemoria(llaveDatos, atoi(argv[1]));
     datos = vincularMemoria(shmIdDatos);
 
+    /*      Reserva la memoria para el tamano       */
     shmIdTamano = reservarMemoria(llaveTamano, 1);
     tamano = vincularMemoria(shmIdTamano);
 
+    /*      Reserva la memoria para la bandera       */
     shmIdBandera = reservarMemoria(llaveBandera, 1);
     bandera = vincularMemoria(shmIdBandera);
 
+    /*      Reserva la memoria para el tamano       */
     imprimirDatoMemoria(shmIdDatos, shmIdBandera, shmIdTamano, atoi(argv[1]));
 
     *bandera = 1;
     *tamano = atoi(argv[1]);
 
     crearArchivo("Bitacora.txt");
-
-    modificarArchivo("Bitacora.txt", " Hola soy alex sanchez");
 
     return 0;
 }
