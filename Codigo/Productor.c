@@ -56,22 +56,19 @@ int main(int argc, char *argv[]){
     int *tamano;
     int *bandera;
 
-    /*      Reserva la memoria para el tamano       */
+    /*      Solicita la memoria del tamano       */
     shmIdTamano = reservarMemoria(llaveTamano, 1);
     tamano = vincularMemoria(shmIdTamano);
 
-    /*      Reserva la memoria para la bansera       */
+    /*      Solicita la memoria de la bandera       */
     shmIdBandera = reservarMemoria(llaveBandera, 1);
     bandera = vincularMemoria(shmIdBandera);
 
-    printf("Tamano: %d\n", (int)*tamano);
-    printf("Bandera: %d\n", (int)*bandera);
-
-    /*      Reserva la memoria para los datos       */
+    /*      Solicita la memoria de los datos       */
     shmIdDatos = reservarMemoria(llaveDatos, (int)*tamano);
     datos = vincularMemoria(shmIdDatos);
 
-    /*Imprimimos todo lo que obtuvimos de arriba*/
+    /*      Imprimimos todo lo que obtuvimos de arriba      */
     imprimirDatoMemoria(shmIdDatos, shmIdBandera, shmIdTamano, (int)*tamano);
 
     /*      Crea los hilos      */

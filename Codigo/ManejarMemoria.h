@@ -21,7 +21,6 @@ void errorFatal(char* pMensaje){
 
 int reservarMemoria (int pLlave, int pCantidad){
     int shmid;
-    printf("pcantidad: %d\n", pCantidad);
     if ((shmid = shmget(pLlave, (sizeof(shmid) * pCantidad), 0777 | IPC_CREAT)) == -1)
         errorFatal("No se pudo reservar la memoria");
     return shmid;

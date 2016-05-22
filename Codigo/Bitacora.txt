@@ -1,8 +1,0 @@
-Identificador: 50
-Accion: char
-Hora: char
-Lineas asigandas: 4
-Identificador: 50
-Accion: char
-Hora: char
-Lineas asigandas: 4
