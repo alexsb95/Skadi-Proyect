@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <string.h>
+#include <errno.h>
+#include <sys/sem.h>
 
 #include "ManejarMemoria.h"
 #include "ManejarArchivo.h"
@@ -27,11 +29,11 @@ void imprimirMenu();
 
 void iniSemarofoMemoria();
 void finiSemarofoMemoria();
-
 char* obtenerTiempoActual();
-
 void escribirAccionBitacora(int , char* , char* , int );
 char* convertirIntAString(int );
+struct flock crearSemarofoArchivo(char* pNombre);
+void agregarDatos(char* pNombre, char* pDatos);
 
 pthread_mutex_t semAccesoMemoria;
 
@@ -52,7 +54,7 @@ int main(int argc, char *argv[]){
 
     int *datos;
     int *tamano;
-    int *bandera; 
+    int *bandera;
 
     /*      Reserva la memoria para el tamano       */
     shmIdTamano = reservarMemoria(llaveTamano, 1);
@@ -73,9 +75,11 @@ int main(int argc, char *argv[]){
     imprimirDatoMemoria(shmIdDatos, shmIdBandera, shmIdTamano, (int)*tamano);
 
     /*      Crea los hilos      */
-    producirHilos(bandera);
+   producirHilos(bandera);
 
     finiSemarofoMemoria();
+
+    escribirAccionBitacora(50,"char","char",4);
 
     return 0;
 }
@@ -164,6 +168,7 @@ void escribirAccionBitacora(int pProcesoId, char* pAccion, char* pHora, int pLin
     char *buffId = convertirIntAString(pProcesoId);
     char *buffLinea = convertirIntAString(pLineasAsigandas);
 
+    /*      Crea l string de datos      */
     char * datos = (char *) malloc(1 +sizeof(char*) * (strlen(pAccion)+ strlen(pHora)) + sizeof(int) * 2);
     strcpy(datos, "Identificador: ");
     strcat(datos, buffId); 
@@ -171,15 +176,14 @@ void escribirAccionBitacora(int pProcesoId, char* pAccion, char* pHora, int pLin
     strcat(datos, pAccion);
     strcat(datos, "\nHora: ");
     strcat(datos, pHora);
-    strcat(datos, "Lineas asigandas: ");
+    strcat(datos, "\nLineas asigandas: ");
     strcat(datos, buffLinea);
     strcat(datos, "\n");
 
-    free(datos);
     free(buffId);
     free(buffLinea);
-    
-    modificarArchivo("Bitacora.txt", datos);
+
+    agregarDatos("Bitacora.txt", datos);
 }
 
 char* convertirIntAString(int pInt){
@@ -199,3 +203,55 @@ char* obtenerTiempoActual(){
 
     return  asctime(timeinfo) ;
 }
+
+struct flock crearSemarofoArchivo(char* pNombre){
+                                 /* l_type   l_whence  l_start  l_len  l_pid   */
+    struct flock semarofoArchivo = {F_WRLCK, SEEK_SET,   0,      0,     0 };
+    
+    /*      Verifica que si el arhivo esta vacio el valor se cambia a 0*/
+    int tamano = obtenerTamanoArchivo(pNombre)-1;
+    if(tamano<0)
+        tamano=0;
+
+    /*      Se modifica los valores del objeto      */
+    semarofoArchivo.l_pid = getpid();
+    semarofoArchivo.l_len = tamano;
+
+    return semarofoArchivo;
+}
+
+
+void agregarDatos(char* pNombre, char* pDatos){
+
+    int archivo = open(pNombre, O_WRONLY|O_APPEND,S_IRUSR|S_IWUSR);
+
+    struct flock semarofoArchivo = crearSemarofoArchivo(pNombre);
+
+    /*      Se abre el archivo      */
+    if (archivo == -1) {
+        printf("Error: no se pudo abrir el archivo.\n");
+        return;
+    }
+
+    /*      Se solicita el semaforo        */
+    if (fcntl(archivo, F_SETLKW, &semarofoArchivo) == -1) {
+        printf("Error: no se pudo obtener el semaforo del archivo.\n");
+        return;
+    }
+
+    write(archivo, pDatos, strlen(pDatos));
+
+    /*      se libera el semaforo       */
+    semarofoArchivo.l_type = F_UNLCK;  
+
+    if (fcntl(archivo, F_SETLK, &semarofoArchivo) == -1) {
+        printf("Error: no se pudo liberar el semaforo del archivo.\n");
+        return;
+    }
+
+    close(archivo);
+}
+
+
+
+
