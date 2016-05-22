@@ -1,0 +1,4 @@
+CompilarTodo: Inicializador.c Productor.c Finalizador.c
+	cc Inicializador.c -o ini
+	cc Finalizador.c -o fin	
+	cc Productor.c -o pro -lpthread

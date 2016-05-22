@@ -26,6 +26,9 @@ void *CorrerHilo(void *);
 int getRandom(int, int);
 int escogerAlgoritmo();
 void imprimirMenu();
+int FirstFit(int, int);
+int BestFit(int, int);
+int WorstFit(int, int);
 
 void iniSemarofoMemoria();
 void finiSemarofoMemoria();
@@ -36,6 +39,9 @@ struct flock crearSemarofoArchivo(char* pNombre);
 void agregarDatos(char* pNombre, char* pDatos);
 
 pthread_mutex_t semAccesoMemoria;
+
+int *datos;
+int *tamano;
 
 int main(int argc, char *argv[]){
     if (argc != 1) {
@@ -52,8 +58,6 @@ int main(int argc, char *argv[]){
     int shmIdTamano;
     int shmIdBandera;
 
-    int *datos;
-    int *tamano;
     int *bandera;
 
     /*      Solicita la memoria del tamano       */
@@ -82,21 +86,18 @@ int main(int argc, char *argv[]){
 }
 
 void producirHilos (int* pBandera){
-    int contHilo = 0;
+    int contHilo = 1;
 
     pthread_t hiloId;
 
     while((int)*pBandera == 1){
         //creamos el hilo
         if(pthread_create(&hiloId, NULL,  CorrerHilo, (void *) &contHilo) < 0)
-            errorFatal("Error: No sve pudo crear el hilo");
+            errorFatal("Error: No se pudo crear el hilo");
         //dormimos un poco hasta que se cree el proximo
         sleep(getRandom(LIMINFLINEAS, LIMSUPLINEAS));
         contHilo++;
     }
-
-    printf("Salio del while por que la bandera cambio\n");
-
 }
 
 void *CorrerHilo(void *pIdHilo){
@@ -249,6 +250,141 @@ void agregarDatos(char* pNombre, char* pDatos){
     close(archivo);
 }
 
+int BestFit(int pIdProceso, int pTamanoProceso){
+    int *ptrDatos = datos;
+    int tamanio = *tamano;
+    int index = 0; int size = 0;
+    int *ini = ptrDatos;
+    int *fin = ptrDatos;
+    int entra = 0; int *ptrIndice = ini; int diferencia = 10000; int indexReturn = 0; int indexInicio = 0;
 
+    while(index < tamanio){
+        if(*ini == 0){
+            indexInicio = index;
+            fin = ini;
+            while(*fin == 0){
+                size++; fin++; index++;
+                if(index == tamanio)
+                    break;
+            }
+            if((size - pTamanoProceso) >= 0){
+                if(diferencia > (size - pTamanoProceso)){
+                    ptrIndice = ini;
+                    entra = 1;
+                    diferencia = (size - pTamanoProceso);
+                    indexReturn = indexInicio;
+                }
+                else if(diferencia == (size - pTamanoProceso)) entra = 1;
+            }
+            ini = fin;
+            size = 0;
 
+        }
+        else{
+            size = 0;
+            ini++;
+            index++;
+        }
+    }
+    
+    if(entra == 1){
+        while(pTamanoProceso > 0){
+            *ptrIndice = pIdProceso;
+            ptrIndice++;
+            return indexInicio;
+        }
+    }
+    else return -1;
+}
+
+int WorstFit(int pIdProceso, int pTamanoProceso){
+    int *ptrDatos = datos;
+    int tamanio = *tamano;
+    int index = 0; int size = 0;
+    int *ini = ptrDatos;
+    int *fin = ptrDatos;
+    int entra = 0; int *ptrIndice = ini; int diferencia = -1; int indexReturn = 0; int indexInicio = 0;
+
+    while(index < tamanio){
+        if(*ini == 0){
+            indexInicio = index;
+            fin = ini;
+            while(*fin == 0){
+                size++; fin++; index++;
+                if(index == tamanio)
+                    break;
+            }
+            if((size - pTamanoProceso) >= 0){
+                if(diferencia < (size - pTamanoProceso)){
+                    ptrIndice = ini;
+                    entra = 1;
+                    diferencia = (size - pTamanoProceso);
+                    indexReturn = indexInicio;
+                }
+                else if(diferencia == (size - pTamanoProceso)) entra = 1;
+            }
+            ini = fin;
+            size = 0;
+
+        }
+        else{
+            size = 0;
+            ini++;
+            index++;
+        }
+    }
+    
+    if(entra == 1){
+        while(pTamanoProceso > 0){
+            *ptrIndice = pIdProceso;
+            ptrIndice++;
+            return indexInicio;
+        }
+    }
+    else return -1;
+}
+
+int FirstFit(int pIdProceso, int pTamanoProceso){
+    int *ptrDatos = datos;
+    int tamanio = *tamano;
+    int index = 0; int size = 0; int entra = 0;
+    int *ini = ptrDatos;
+    int *fin = ptrDatos;
+
+    while(index < tamanio && entra == 0){
+        if(*ini == 0){
+            fin = ini;
+            while(*fin == 0){
+                size++; fin++; index++;
+                if(size >= pTamanoProceso){
+                    entra = 1;
+                    break;
+                }
+                else if(index == tamanio){
+                    entra = -1;
+                    break;
+                }
+            }
+            if(entra == 0){
+                ini = fin;
+                size = 0;
+            }
+            else break;
+        }
+        else{
+            size = 0;
+            ini++;
+            index++;
+        }
+    }
+    if(entra == 1){
+        while(ini != fin){
+            *ini = pIdProceso;
+            ini++;
+        }
+        return 1;
+    }
+    else
+        return 0;
+}
 
