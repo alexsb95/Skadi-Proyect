@@ -1,0 +1,16 @@
+Identificador: 1
+Accion: Asigna Memoria
+Hora: Mon May 23 10:42:00 2016
+Lineas afectadas: 0 - 1 - 2 - 3 - 4 - 5 - 6 - 7 - 
+Identificador: 2
+Accion: Asigna Memoria
+Hora: Mon May 23 10:42:44 2016
+Lineas afectadas: 8 - 9 - 10 - 11 - 12 - 13 - 
+Identificador: 1
+Accion: Desasigna Memoria
+Hora: Mon May 23 10:42:56 2016
+Lineas afectadas: 0 - 1 - 2 - 3 - 4 - 5 - 6 - 7 - 
+Identificador: 2
+Accion: Desasigna Memoria
+Hora: Mon May 23 10:43:11 2016
+Lineas afectadas: 8 - 9 - 10 - 11 - 12 - 13 - 
