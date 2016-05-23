@@ -30,6 +30,9 @@ int ejecutaralgoritmo(int, int);
 
 int escogerAlgoritmo();
 void imprimirMenu();
+int FirstFit(int, int);
+int BestFit(int, int);
+int WorstFit(int, int);
 
 char* obtenerTiempoActual();
 // Cambiar agregar para varios lineas
@@ -52,6 +55,9 @@ int *datos;
 
 /*      Tipo algoritmo del algoritmo    */
 int tipoAlgoritmo = 0;
+
+int *datos;
+int *tamano;
 
 int main(int argc, char *argv[]){
     if (argc != 1) {
@@ -114,9 +120,6 @@ void producirHilos (int* pBandera){
         sleep(getRandom(LIMINFLINEAS, LIMSUPTIEMPO));
         contHilo++;
     }
-
-    printf("Salio del while por que la bandera cambio\n");
-
 }
 
 void  recorrerMemoria(int* pDatos, int pTamano){
@@ -369,6 +372,7 @@ int BestFit(int pIdProceso, int pTamanoProceso){
             }
             if((size - pTamanoProceso) >= 0){
                 if(diferencia > (size - pTamanoProceso)){
+
                     ptrIndice = ini;
                     entra = 1;
                     diferencia = (size - pTamanoProceso);
@@ -398,6 +402,49 @@ int BestFit(int pIdProceso, int pTamanoProceso){
     else return -1;
 }
 
+int FirstFit(int pIdProceso, int pTamanoProceso){
+    int *ptrDatos = datos;
+    int tamanio = *tamano;
+    int index = 0; int size = 0; int entra = 0;
+    int *ini = ptrDatos;
+    int *fin = ptrDatos;
+
+    while(index < tamanio && entra == 0){
+        if(*ini == 0){
+            fin = ini;
+            while(*fin == 0){
+                size++; fin++; index++;
+                if(size >= pTamanoProceso){
+                    entra = 1;
+                    break;
+                }
+                else if(index == tamanio){
+                    entra = -1;
+                    break;
+                }
+            }
+            if(entra == 0){
+                ini = fin;
+                size = 0;
+            }
+            else break;
+        }
+        else{
+            size = 0;
+            ini++;
+            index++;
+        }
+    }
+    if(entra == 1){
+        while(ini != fin){
+            *ini = pIdProceso;
+            ini++;
+        }
+        return 1;
+    }
+    else
+        return 0;
+}
 
 int WorstFit(int pIdProceso, int pTamanoProceso){
     int *ptrDatos = datos;
