@@ -21,6 +21,8 @@
 #define LIMINFTIEMPO 30
 #define LIMSUPTIEMPO 60
 
+#define NOMBREARCHIVO "Bitacora.txt"
+
 /*Prototipos de funciones*/
 void producirHilos (int*);
 void *CorrerHilo(void *);
@@ -35,11 +37,10 @@ int BestFit(int, int);
 int WorstFit(int, int);
 
 char* obtenerTiempoActual();
-// Cambiar agregar para varios lineas
-void escribirAccionBitacora(int , char* , char* , int );
+void escribirAccionBitacora(int, char*, char*, int, int);
 char* convertirIntAString(int );
 struct flock crearSemarofoArchivo(char* pNombre);
-void agregarDatos(char* pNombre, char* pDatos);
+void agregarDatos(char* pDatos);
 
 void limpiarMemoria(int, int);
 void  recorrerMemoria(int*, int);
@@ -50,20 +51,31 @@ int WorstFit(int, int);
 
 /*      Semaforo de la escritra en la memoria      */
 int semaforoId;
+
+/*      Datos de la memoria         */
 int *tamano;
 int *datos;
 
 /*      Tipo algoritmo del algoritmo    */
 int tipoAlgoritmo = 0;
 
-int *datos;
-int *tamano;
+/*      Archivo de la bitacora           */
+int archivo;
+
+/*      Semarofo de el archivo      */
+struct flock semarofoArchivo;
 
 int main(int argc, char *argv[]){
     if (argc != 1) {
         fprintf(stderr, "Error: Ingresar los parametros. Forma correcta: ./%s\n", argv[0]);
         exit(1);
     }
+
+    /*      Abre el archivo         */
+    archivo = open(NOMBREARCHIVO, O_WRONLY|O_APPEND,S_IRUSR|S_IWUSR);
+
+    /*      Crea el semaforo        */
+    semarofoArchivo = crearSemarofoArchivo(NOMBREARCHIVO);
 
     tipoAlgoritmo = escogerAlgoritmo();
     /*      Key del semaforo de la memoria      */
@@ -104,6 +116,8 @@ int main(int argc, char *argv[]){
     /*      destruimos el semaforo       */
     destruirSemaforoMemoria(semaforoId);
 
+    close(archivo);
+
     return 0;
 }
 
@@ -121,6 +135,8 @@ void producirHilos (int* pBandera){
         contHilo++;
     }
 }
+
+/*      Maneja memoria      */
 
 void  recorrerMemoria(int* pDatos, int pTamano){
     int contador;
@@ -159,6 +175,9 @@ void *CorrerHilo(void *pIdHilo){
         printf("El proceso %i bloqueo la memoria\n", idHilo);   
 
         posicion = ejecutaralgoritmo(idHilo,cantidadLineas);
+
+        escribirAccionBitacora(idHilo, "Asigna Memoria",obtenerTiempoActual(),posicion,cantidadLineas);
+
         printf(" posicion %i - cantidadLineas %i\n",posicion, cantidadLineas );
 
         recorrerMemoria(datos,(int)*tamano);
@@ -176,6 +195,7 @@ void *CorrerHilo(void *pIdHilo){
             printf("El proceso %i bloqueo la memoria\n", idHilo);   
 
             limpiarMemoria(posicion,cantidadLineas);
+            escribirAccionBitacora(idHilo, "Desasigna Memoria",obtenerTiempoActual(),posicion,cantidadLineas);
 
             printf("El proceso %i des-bloqueo la memoria\n", idHilo);
         liberarSemaforoMemoria(semaforoId);
@@ -184,6 +204,8 @@ void *CorrerHilo(void *pIdHilo){
 
     pthread_exit(NULL);  
 }
+
+/*      Manejo de algoritmos        */
 
 int getRandom(int pLimInf, int pLimSup){
 	int r = (rand() % (pLimSup+1-pLimInf))+pLimInf;
@@ -218,11 +240,16 @@ void imprimirMenu(){
 	printf("---------------------------\nOpcion: ");
 }
 
-void escribirAccionBitacora(int pProcesoId, char* pAccion, char* pHora, int pLineasAsigandas){
-    char *buffId = convertirIntAString(pProcesoId);
-    char *buffLinea = convertirIntAString(pLineasAsigandas);
+/*      Manejo de bitacora      */
 
-    /*      Crea l string de datos      */
+void escribirAccionBitacora(int pProcesoId, char* pAccion, char* pHora, int pLineasAsigandas, int pCantidadAsignadas){
+    char *buffId = convertirIntAString(pProcesoId);
+    char **buffLinea = (char **) malloc(sizeof(char*)*(pCantidadAsignadas+1));
+    int contador;
+    for(contador=0; contador<pCantidadAsignadas; contador++){
+            buffLinea[contador] = convertirIntAString(pLineasAsigandas+contador);
+    }
+    /*      Crea el string de datos      */
     char * datosStr = (char *) malloc(1 +sizeof(char*) * (strlen(pAccion)+ strlen(pHora)) + sizeof(int) * 2);
     strcpy(datosStr, "Identificador: ");
     strcat(datosStr, buffId); 
@@ -230,14 +257,24 @@ void escribirAccionBitacora(int pProcesoId, char* pAccion, char* pHora, int pLin
     strcat(datosStr, pAccion);
     strcat(datosStr, "\nHora: ");
     strcat(datosStr, pHora);
-    strcat(datosStr, "\nLineas asigandas: ");
-    strcat(datosStr, buffLinea);
+    strcat(datosStr, "Lineas afectadas: ");
+    for (contador = 0; contador < pCantidadAsignadas; contador++)
+    {
+        strcat(datosStr, buffLinea[contador]);
+        strcat(datosStr, " - ");
+    }
     strcat(datosStr, "\n");
 
+    
     free(buffId);
+    printf(" Error  %s \n",datosStr);
+
+    for ( contador = 0; buffLinea[contador]; contador++ )
+        free( buffLinea[contador] );
+
     free(buffLinea);
 
-    agregarDatos("Bitacora.txt", datosStr);
+    agregarDatos(datosStr);
 }
 
 char* convertirIntAString(int pInt){
@@ -275,11 +312,7 @@ struct flock crearSemarofoArchivo(char* pNombre){
 }
 
 
-void agregarDatos(char* pNombre, char* pDatos){
-
-    int archivo = open(pNombre, O_WRONLY|O_APPEND,S_IRUSR|S_IWUSR);
-
-    struct flock semarofoArchivo = crearSemarofoArchivo(pNombre);
+void agregarDatos(char* pDatos){
 
     /*      Se abre el archivo      */
     if (archivo == -1) {
@@ -302,8 +335,6 @@ void agregarDatos(char* pNombre, char* pDatos){
         printf("Error: no se pudo liberar el semaforo del archivo.\n");
         return;
     }
-
-    close(archivo);
 }
 
 /*          Algoritmos          */
@@ -400,50 +431,6 @@ int BestFit(int pIdProceso, int pTamanoProceso){
         return indexInicio;
     }
     else return -1;
-}
-
-int FirstFit(int pIdProceso, int pTamanoProceso){
-    int *ptrDatos = datos;
-    int tamanio = *tamano;
-    int index = 0; int size = 0; int entra = 0;
-    int *ini = ptrDatos;
-    int *fin = ptrDatos;
-
-    while(index < tamanio && entra == 0){
-        if(*ini == 0){
-            fin = ini;
-            while(*fin == 0){
-                size++; fin++; index++;
-                if(size >= pTamanoProceso){
-                    entra = 1;
-                    break;
-                }
-                else if(index == tamanio){
-                    entra = -1;
-                    break;
-                }
-            }
-            if(entra == 0){
-                ini = fin;
-                size = 0;
-            }
-            else break;
-        }
-        else{
-            size = 0;
-            ini++;
-            index++;
-        }
-    }
-    if(entra == 1){
-        while(ini != fin){
-            *ini = pIdProceso;
-            ini++;
-        }
-        return 1;
-    }
-    else
-        return 0;
 }
 
 int WorstFit(int pIdProceso, int pTamanoProceso){

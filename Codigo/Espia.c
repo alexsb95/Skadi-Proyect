@@ -6,6 +6,8 @@
 
 #include "ManejarMemoria.h"
 
+void recorrerMemoria(int*, int);
+
 int main(int argc, char *argv[]){
 
 	key_t llaveDatos = 5432;
@@ -36,7 +38,17 @@ int main(int argc, char *argv[]){
     /*      Imprimimos todo lo que obtuvimos de arriba      */
     imprimirDatoMemoria(shmIdDatos, shmIdBandera, shmIdTamano, (int)*tamano);
 
-
+    recorrerMemoria(datos,(int)*tamano);
 }
 
+void  recorrerMemoria(int* pDatos, int pTamano){
+	int contador;
 
+	for(contador=0; contador<pTamano;contador++){
+		printf("#------------------#\n");
+		printf("# \t%d\t #\n",*pDatos );
+		printf("#------------------#\n");
+		pDatos ++;
+	}
+
+}
