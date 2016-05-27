@@ -9,6 +9,8 @@
 
 #include "ManejarMemoria.h"
 
+#define MEMORIABLOQUEADO 500
+
 int main(int argc, char *argv[]){
     if (argc != 1) {
         fprintf(stderr, "Error: Ingresar los parametros. Forma correcta: ./%s\n", argv[0]);
@@ -18,16 +20,19 @@ int main(int argc, char *argv[]){
     key_t llaveTamano = 6543;
     key_t llaveBandera = 7654;
     key_t llaveBloqueado = 6667;
+    key_t llaveAccesoMem = 4565;
     
     int shmIdDatos;
     int shmIdTamano;
     int shmIdBandera;
     int shmIdBloqueado;
+    int shmIdAccesoMem;
 
     int *datos;
     int *tamano;
     int *bandera;
     int *bloqueado;
+    int *accesoMemoria;
 
     /*      Solicita la memoria del tamano       */
     shmIdTamano = reservarMemoria(llaveTamano, 1);
@@ -42,8 +47,12 @@ int main(int argc, char *argv[]){
     datos = vincularMemoria(shmIdDatos);
 
     /*      Solicita la memoria de los bloqueados       */
-    shmIdBloqueado = reservarMemoria(llaveBloqueado, 500);
+    shmIdBloqueado = reservarMemoria(llaveBloqueado, MEMORIABLOQUEADO);
     bloqueado = vincularMemoria(shmIdBloqueado);
+
+    /*      Solicita la memoria de el proceso que acede a memoria       */
+    shmIdAccesoMem = reservarMemoria(llaveAccesoMem, 1);
+    accesoMemoria = vincularMemoria(shmIdAccesoMem);
 
     *bandera = 0;
 
@@ -51,6 +60,7 @@ int main(int argc, char *argv[]){
     desvincularMemoria(shmIdBandera, bandera);
     desvincularMemoria(shmIdTamano, tamano);
     desvincularMemoria(shmIdBloqueado, bloqueado);
+    desvincularMemoria(shmIdBloqueado, accesoMemoria);
 
     return 0;
 }

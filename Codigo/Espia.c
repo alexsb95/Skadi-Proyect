@@ -7,40 +7,48 @@
 #include "ManejarMemoria.h"
 #include "ManejarSemaforo.h"
 
-void recorrerMemoria(int*, int);
+#define MEMORIABLOQUEADO 500
 
+/*      Prototipos de funciones         */
+void recorrerMemoria(int*, int);
 char* convertirIntAString(int);
 char* procesosMemoria (int*, int);
 char* procesosMemoriaBloqueados (int*, int);
-void espiar(int*, int*, int);
+void espiar(int*, int*, int*, int);
 int encuentraLista (int[], int, int);
+char* procesoAccesoMem(int*);
 
 
 /*      Semaforo de la escritra en la memoria      */
 int semaforoId;
 int semaforoIdLectura;
+int semaforoIdAcceso;
 
 int main(int argc, char *argv[]){
 
     /*      Key del semaforo de la memoria      */
     key_t llaveSemarofo = 2032;
     key_t llaveSemarofoLectura = 1395;
+    key_t llaveSemarofoAcceso = 5068;
 
     /*      Keys para solicitar los segmentos de memoria     */
 	key_t llaveDatos = 5432;
     key_t llaveTamano = 6543;
     key_t llaveBandera = 7654;
     key_t llaveBloqueado = 6667;
+    key_t llaveAccesoMem = 4565;
     
     int shmIdDatos;
     int shmIdTamano;
     int shmIdBandera;
     int shmIdBloqueado;
+    int shmIdAccesoMem;
 
     int *datos;
     int *tamano;
     int *bandera;
-    int *bloqueado;  
+    int *bloqueado;
+    int *accesoMemoria;  
 
     /*      Solicita la memoria del tamano       */
     shmIdTamano = reservarMemoria(llaveTamano, 1);
@@ -55,17 +63,22 @@ int main(int argc, char *argv[]){
     datos = vincularMemoria(shmIdDatos);
 
     /*      Solicita la memoria para la los  Procesos Bloqueados       */
-    shmIdBloqueado = reservarMemoria(llaveBloqueado, 500);
+    shmIdBloqueado = reservarMemoria(llaveBloqueado, MEMORIABLOQUEADO);
     bloqueado = vincularMemoria(shmIdBloqueado);
 
+    /*      Solicita la memoria de el proceso que acede a memoria       */
+    shmIdAccesoMem = reservarMemoria(llaveAccesoMem, 1);
+    accesoMemoria = vincularMemoria(shmIdAccesoMem);
+
     /*      Imprimimos todo lo que obtuvimos de arriba      */
-    imprimirDatoMemoria(shmIdDatos, shmIdBandera, shmIdTamano, (int)*tamano);
+    imprimirDatoMemoria(shmIdDatos, shmIdBandera, (int)*tamano);
 
     /*      Copiamos el semaforo       */
     semaforoId = copiarSemaforo(llaveSemarofo);
     semaforoIdLectura = copiarSemaforo(llaveSemarofoLectura);
+    semaforoIdAcceso = copiarSemaforo(llaveSemarofoAcceso);
 
-    espiar(datos, bloqueado, (int)*tamano);
+    espiar(datos, bloqueado, accesoMemoria, (int)*tamano);
 
 }
 
@@ -154,22 +167,26 @@ char* convertirIntAString(int pInt){
     return string;
 }
 
-void espiar(int* pDatos, int* pBloqueado, int pTamano){
+void espiar(int* pDatos, int* pBloqueado, int* pAcceso, int pTamano){
 	char * procesosEjecutando;
 	char * procesosBloqueados;
+    char * procesosAccesoMemoria;
 
+    printf(" Memoria: \n");
 	obtenerSemaforoMemoria (semaforoIdLectura);
 
     procesosEjecutando = procesosMemoria(pDatos,pTamano);
     procesosBloqueados = procesosMemoriaBloqueados(pBloqueado, 500);
 
    	recorrerMemoria(pDatos, pTamano );
-    //recorrerMemoria(pBloqueado, 20 );
 
     liberarSemaforoMemoria(semaforoIdLectura);
 
+    procesosAccesoMemoria = procesoAccesoMem(pAcceso);
+
     printf (" %s ", procesosEjecutando);
     printf (" %s ", procesosBloqueados);
+    printf("Id del proceso con acceso a memoria:\n *\t%s\t*\n", procesosAccesoMemoria);
 
     //free (procesosEjecutando);
     //free (procesosBloqueados);
@@ -186,16 +203,14 @@ int encuentraLista (int pLista[], int pTamano, int pElemento){
     return 0;
 }
 
-// GETPID -> ultimo proceso en utlizar el semaforo
-// GETZCNT / GETNCNT-> cantidad de procesos bloqueados
+char* procesoAccesoMem(int *pMemoria){
+    int pId;
 
-/*
-       GETNCNT   the value of semncnt.
+    obtenerSemaforoMemoria (semaforoIdAcceso);
 
-       GETPID    the value of sempid.
+    pId = *pMemoria;
 
-       GETVAL    the value of semval.
+    liberarSemaforoMemoria(semaforoIdAcceso);
 
-       GETZCNT   the value of semzcnt.
-
-*/
+    return convertirIntAString(pId);
+}

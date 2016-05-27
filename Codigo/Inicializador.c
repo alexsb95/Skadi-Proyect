@@ -10,6 +10,9 @@
 #include "ManejarMemoria.h"
 #include "ManejarArchivo.h"
 
+#define MEMORIABLOQUEADO 500
+#define NOMBREBITACORA "Bitacora.txt"
+
 /*Prototipos de funciones*/
 
 int main(int argc, char *argv[]){
@@ -23,16 +26,19 @@ int main(int argc, char *argv[]){
     key_t llaveTamano = 6543;
     key_t llaveBandera = 7654;
     key_t llaveBloqueado = 6667;
-    
+    key_t llaveAccesoMem = 4565;
+
     int shmIdDatos;
     int shmIdTamano;
     int shmIdBandera;
     int shmIdBloqueado;
+    int shmIdAccesoMem;
 
-    int *datos, *ptroDatos;
+    int *datos;
     int *tamano;
     int *bandera;
     int *bloqueado; 
+    int *accesoMemoria;
 
     /*      Reserva la memoria para los datos       */
     shmIdDatos = reservarMemoria(llaveDatos, atoi(argv[1]));
@@ -47,16 +53,20 @@ int main(int argc, char *argv[]){
     bandera = vincularMemoria(shmIdBandera);
 
     /*      Reserva la memoria para la los  Procesos Bloqueados       */
-    shmIdBloqueado = reservarMemoria(llaveBloqueado, 500);
+    shmIdBloqueado = reservarMemoria(llaveBloqueado, MEMORIABLOQUEADO);
     bloqueado = vincularMemoria(shmIdBloqueado);
 
+    /*      Reserva la memoria de el proceso que acede a memoria       */
+    shmIdAccesoMem = reservarMemoria(llaveAccesoMem, 1);
+    accesoMemoria = vincularMemoria(shmIdAccesoMem);
+
     /*      Imprime la informacion      */
-    imprimirDatoMemoria(shmIdDatos, shmIdBandera, shmIdTamano, atoi(argv[1]));
+    imprimirDatoMemoria(shmIdDatos, shmIdBandera, atoi(argv[1]));
 
     *bandera = 1;
     *tamano = atoi(argv[1]);
 
-    crearArchivo("Bitacora.txt");
+    crearArchivo(NOMBREBITACORA);
 
     return 0;
 }

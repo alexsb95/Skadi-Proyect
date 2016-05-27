@@ -11,7 +11,7 @@ void errorFatal(char *);
 int reservarMemoria (int, int);
 int* vincularMemoria(int);
 void desvincularMemoria (int, int*);
-void imprimirDatoMemoria();
+void imprimirDatoMemoria(int, int, int);
 
 /*Rutinas de funciones*/
 void errorFatal(char* pMensaje){
@@ -40,11 +40,10 @@ void desvincularMemoria (int pShmId, int* pShmDatos){
     shmctl(pShmId, IPC_RMID, NULL);
 }
 
-void imprimirDatoMemoria(int pShmIdDatos, int pShmIdBandera, int pShmIdTamano, int pCantidadLineas){
+void imprimirDatoMemoria(int pShmIdDatos, int pShmIdBandera, int pCantidadLineas){
     printf("---------------------------\n");
     printf("+ Id memoria compartida: %d\n", pShmIdDatos);
     printf("+ Id bandera compartida: %d\n", pShmIdBandera);
-    printf("+ Id tamanio compartida: %d\n", pShmIdTamano);
     printf("+ Total lineas reservadas: %d\n", pCantidadLineas);
     printf("+ Total bytes reservados: %d\n", (sizeof(int) * pCantidadLineas));
     printf("---------------------------\n");
