@@ -22,14 +22,17 @@ int main(int argc, char *argv[]){
     key_t llaveDatos = 5432;
     key_t llaveTamano = 6543;
     key_t llaveBandera = 7654;
+    key_t llaveBloqueado = 6667;
     
     int shmIdDatos;
     int shmIdTamano;
     int shmIdBandera;
+    int shmIdBloqueado;
 
     int *datos, *ptroDatos;
     int *tamano;
-    int *bandera; 
+    int *bandera;
+    int *bloqueado; 
 
     /*      Reserva la memoria para los datos       */
     shmIdDatos = reservarMemoria(llaveDatos, atoi(argv[1]));
@@ -42,6 +45,10 @@ int main(int argc, char *argv[]){
     /*      Reserva la memoria para la bandera       */
     shmIdBandera = reservarMemoria(llaveBandera, 1);
     bandera = vincularMemoria(shmIdBandera);
+
+    /*      Reserva la memoria para la los  Procesos Bloqueados       */
+    shmIdBloqueado = reservarMemoria(llaveBloqueado, 500);
+    bloqueado = vincularMemoria(shmIdBloqueado);
 
     /*      Imprime la informacion      */
     imprimirDatoMemoria(shmIdDatos, shmIdBandera, shmIdTamano, atoi(argv[1]));

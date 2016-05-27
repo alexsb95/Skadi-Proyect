@@ -16,12 +16,13 @@
 
 #define LIMINFLINEAS 1
 #define LIMSUPLINEAS 10
-#define LIMINFTIELIN 20
-#define LIMSUPTIELIN 60
-#define LIMINFTIEMPO 30
-#define LIMSUPTIEMPO 60
-
-#define NOMBREARCHIVO "Bitacora.txt"
+#define LIMINFTIELIN 10
+#define LIMSUPTIELIN 30
+#define LIMINFTIEMPO 15
+#define LIMSUPTIEMPO 30
+#define NOMBREBITACORA "Bitacora.txt"
+#define NOMBREBLOQUEADO "Bloqueado.txt"
+#define TIEMPOSLEEP 20
 
 /*Prototipos de funciones*/
 void producirHilos (int*);
@@ -32,9 +33,9 @@ int ejecutaralgoritmo(int, int);
 
 int escogerAlgoritmo();
 void imprimirMenu();
-int FirstFit(int, int);
-int BestFit(int, int);
-int WorstFit(int, int);
+int FirstFit(int, int, int*);
+int BestFit(int, int, int*);
+int WorstFit(int, int, int*);
 
 char* obtenerTiempoActual();
 void escribirAccionBitacora(int, char*, char*, int, int);
@@ -42,25 +43,27 @@ char* convertirIntAString(int );
 struct flock crearSemarofoArchivo(char* pNombre);
 void agregarDatos(char* pDatos);
 
-void limpiarMemoria(int, int);
+void limpiarMemoria(int, int, int*);
 void  recorrerMemoria(int*, int);
 
-int FirstFit(int, int);
-int BestFit(int, int);
-int WorstFit(int, int);
+int procesoBloqueado(int);
+void procesoDesBloqueado(int, int);
 
 /*      Semaforo de la escritra en la memoria      */
 int semaforoId;
+int semaforoIdBloqueado;
+int semaforoIdLectura;
 
 /*      Datos de la memoria         */
 int *tamano;
 int *datos;
+int *bloqueado;
 
 /*      Tipo algoritmo del algoritmo    */
 int tipoAlgoritmo = 0;
 
 /*      Archivo de la bitacora           */
-int archivo;
+int archivoBitacora;
 
 /*      Semarofo de el archivo      */
 struct flock semarofoArchivo;
@@ -71,26 +74,34 @@ int main(int argc, char *argv[]){
         exit(1);
     }
 
-    /*      Abre el archivo         */
-    archivo = open(NOMBREARCHIVO, O_WRONLY|O_APPEND,S_IRUSR|S_IWUSR);
+    /*      Abre la bitacora         */
+    archivoBitacora = open(NOMBREBITACORA, O_WRONLY|O_APPEND,S_IRUSR|S_IWUSR);
 
-    /*      Crea el semaforo        */
-    semarofoArchivo = crearSemarofoArchivo(NOMBREARCHIVO);
+    /*      Crea el semaforo de la bitacora       */
+    semarofoArchivo = crearSemarofoArchivo(NOMBREBITACORA);
 
+    /*      Solicita el algoritmo que se quiere utilizar        */
     tipoAlgoritmo = escogerAlgoritmo();
+
+
     /*      Key del semaforo de la memoria      */
-    key_t key = 2032;
+    key_t llaveSemarofo = 2032;
+    key_t llaveSemarofoLectura = 1395;
+    key_t llaveSemarofoBloqueado = 2186;
 
     /*      Keys para reservar los segmentos de memoria     */
     key_t llaveDatos = 5432;
     key_t llaveTamano = 6543;
     key_t llaveBandera = 7654;
+    key_t llaveBloqueado = 6667;
     
     int shmIdDatos;
     int shmIdTamano;
     int shmIdBandera;
+    int shmIdBloqueado;
 
     int *bandera;
+
 
     /*      Solicita la memoria del tamano       */
     shmIdTamano = reservarMemoria(llaveTamano, 1);
@@ -104,19 +115,28 @@ int main(int argc, char *argv[]){
     shmIdDatos = reservarMemoria(llaveDatos, (int)*tamano);
     datos = vincularMemoria(shmIdDatos);
 
+    /*      Solicita la memoria de los bloqueados       */
+    shmIdBloqueado = reservarMemoria(llaveBloqueado, 500);
+    bloqueado = vincularMemoria(shmIdBloqueado);
+
     /*      Imprimimos todo lo que obtuvimos de arriba      */
     imprimirDatoMemoria(shmIdDatos, shmIdBandera, shmIdTamano, (int)*tamano);
 
-    /*      Inicializamos el semaforo       */
-    semaforoId = crearSemaforoMemoria(key);
+
+    /*      Inicializamos los semaforo       */
+    semaforoId = crearSemaforoMemoria(llaveSemarofo);
+    semaforoIdBloqueado = crearSemaforoMemoria(llaveSemarofoBloqueado);
+    semaforoIdLectura = crearSemaforoMemoria(llaveSemarofoLectura);
 
     /*      Crea los hilos      */
     producirHilos(bandera);
 
     /*      destruimos el semaforo       */
     destruirSemaforoMemoria(semaforoId);
+    destruirSemaforoMemoria(llaveSemarofoBloqueado);
+    destruirSemaforoMemoria(semaforoIdLectura);
 
-    close(archivo);
+    close(archivoBitacora);
 
     return 0;
 }
@@ -142,47 +162,69 @@ void  recorrerMemoria(int* pDatos, int pTamano){
     int contador;
 
     for(contador=0; contador<pTamano;contador++){
-        printf("pos: %i # %d #\n",contador,*pDatos );
+        printf("linea %i # %d #\n",contador,*pDatos );
         pDatos ++;
     }
 
 }
 
-void limpiarMemoria(int pPosicionInicial, int pCantLineas){
+void limpiarMemoria(int pPosicionInicial, int pCantLineas, int *pPunteroMemoria){
     int contador;
-    int* ptrDatos = datos;
 
-    ptrDatos=ptrDatos+pPosicionInicial;
+    pPunteroMemoria=pPunteroMemoria+pPosicionInicial;
 
     for(contador=0; contador<=pCantLineas;contador++){
         if(contador !=0 || pPosicionInicial != 0)
-            ptrDatos++;
-        *ptrDatos = 0;
+            pPunteroMemoria++;
+        *pPunteroMemoria = 0;
 
     }
-   
-    recorrerMemoria(datos,(int)*tamano);
 }
 
 void *CorrerHilo(void *pIdHilo){
     int idHilo = *(int*)pIdHilo;
     int posicion = 0;
+    int posicionBloqueado;
     int tiempoEspera = getRandom(LIMINFTIELIN, LIMSUPTIELIN);
     int cantidadLineas = getRandom(LIMINFLINEAS, LIMSUPLINEAS);
+    union semun arg;
 
-    printf(" Agregando proceso ...\n"); 
+    printf(" Se creo el proceso %i ...\n",idHilo);
+
+    /*		Bloqua el proceso		*/
+    posicionBloqueado = procesoBloqueado(idHilo);
+
     obtenerSemaforoMemoria (semaforoId);
-        printf("El proceso %i bloqueo la memoria\n", idHilo);   
 
-        posicion = ejecutaralgoritmo(idHilo,cantidadLineas);
+	printf("El proceso %i bloqueo la memoria\n", idHilo);
 
-        escribirAccionBitacora(idHilo, "Asigna Memoria",obtenerTiempoActual(),posicion,cantidadLineas);
+	procesoDesBloqueado(idHilo, posicionBloqueado);
 
-        printf(" posicion %i - cantidadLineas %i\n",posicion, cantidadLineas );
 
-        recorrerMemoria(datos,(int)*tamano);
+    /*		Espera si esta en modo lectura 		*/
+    while(semctl(semaforoIdLectura, 0, GETVAL, arg) == 0){
+    	printf(" Esperando lectura\n");
+    	sleep(1);
+    }
 
-        printf("El proceso %i des-bloqueo la memoria\n", idHilo);
+
+	posicion = ejecutaralgoritmo(idHilo,cantidadLineas);
+
+	if (posicion != -1){
+
+		escribirAccionBitacora(idHilo, "Asigna Memoria", obtenerTiempoActual(), posicion, cantidadLineas);
+
+		printf(" posicion %i - cantidadLineas %i\n",posicion, cantidadLineas );
+
+	}else
+		printf("El proceso %i no encontro espacio en la memoria\n",idHilo);
+
+	recorrerMemoria(datos,(int)*tamano);
+
+    sleep(TIEMPOSLEEP);
+
+	printf("El proceso %i des-bloqueo la memoria\n", idHilo);
+
     liberarSemaforoMemoria(semaforoId);
 
     /*       Verifica que si encontro espacio        */
@@ -190,17 +232,22 @@ void *CorrerHilo(void *pIdHilo){
         printf("El proceso %i entro en espera\n", idHilo);
         sleep(tiempoEspera);
 
-        printf(" Sacando proceso ...\n"); 
+        printf(" Sacando proceso %i ...\n", idHilo); 
         obtenerSemaforoMemoria (semaforoId);
-            printf("El proceso %i bloqueo la memoria\n", idHilo);   
+        printf("El proceso %i bloqueo la memoria\n", idHilo);   
 
-            limpiarMemoria(posicion,cantidadLineas);
-            escribirAccionBitacora(idHilo, "Desasigna Memoria",obtenerTiempoActual(),posicion,cantidadLineas);
+        /*      Espera si esta en modo lectura      */
+        while(semctl(semaforoIdLectura, 0, GETVAL, arg) == 0){
+            printf(" Esperando lectura\n");
+            sleep(1);
+        }
 
-            printf("El proceso %i des-bloqueo la memoria\n", idHilo);
+        limpiarMemoria(posicion, cantidadLineas, datos);
+        escribirAccionBitacora(idHilo, "Desasigna Memoria",obtenerTiempoActual(),posicion,cantidadLineas);
+
+        printf("El proceso %i des-bloqueo la memoria\n", idHilo);
         liberarSemaforoMemoria(semaforoId);
-    }else
-        printf("El proceso %i no encontro espacio en la memoria\n",idHilo);
+    }
 
     pthread_exit(NULL);  
 }
@@ -214,9 +261,9 @@ int getRandom(int pLimInf, int pLimSup){
 
 int ejecutaralgoritmo(int pIdProceso, int pTamanoProceso ){
     switch (tipoAlgoritmo){
-        case 1 : return FirstFit(pIdProceso, pTamanoProceso);
-        case 2 : return BestFit(pIdProceso, pTamanoProceso);
-        case 3 : return WorstFit(pIdProceso, pTamanoProceso);
+        case 1 : return FirstFit(pIdProceso, pTamanoProceso, datos);
+        case 2 : return BestFit(pIdProceso, pTamanoProceso, datos);
+        case 3 : return WorstFit(pIdProceso, pTamanoProceso, datos);
     }
 }
 
@@ -265,16 +312,31 @@ void escribirAccionBitacora(int pProcesoId, char* pAccion, char* pHora, int pLin
     }
     strcat(datosStr, "\n");
 
-    
     free(buffId);
-    printf(" Error  %s \n",datosStr);
-
-    for ( contador = 0; buffLinea[contador]; contador++ )
-        free( buffLinea[contador] );
-
+     printf(" hola %s \n",datosStr);
+    for ( contador = 0; contador < pCantidadAsignadas; contador++ )
+    	free( buffLinea[contador] );
+ 
     free(buffLinea);
+    
 
     agregarDatos(datosStr);
+}
+
+struct flock crearSemarofoArchivo(char* pNombre){
+                                 /* l_type   l_whence  l_start  l_len  l_pid   */
+    struct flock semarofoArchivo = {F_WRLCK, SEEK_SET,   0,      0,     0 };
+    
+    /*      Verifica que si el arhivo esta vacio el valor se cambia a 0*/
+    int tamano = obtenerTamanoArchivo(pNombre)-1;
+    if(tamano<0)
+        tamano=0;
+
+    /*      Se modifica los valores del objeto      */
+    semarofoArchivo.l_pid = getpid();
+    semarofoArchivo.l_len = tamano;
+
+    return semarofoArchivo;
 }
 
 char* convertirIntAString(int pInt){
@@ -295,52 +357,55 @@ char* obtenerTiempoActual(){
     return  asctime(timeinfo) ;
 }
 
-struct flock crearSemarofoArchivo(char* pNombre){
-                                 /* l_type   l_whence  l_start  l_len  l_pid   */
-    struct flock semarofoArchivo = {F_WRLCK, SEEK_SET,   0,      0,     0 };
-    
-    /*      Verifica que si el arhivo esta vacio el valor se cambia a 0*/
-    int tamano = obtenerTamanoArchivo(pNombre)-1;
-    if(tamano<0)
-        tamano=0;
-
-    /*      Se modifica los valores del objeto      */
-    semarofoArchivo.l_pid = getpid();
-    semarofoArchivo.l_len = tamano;
-
-    return semarofoArchivo;
-}
-
-
 void agregarDatos(char* pDatos){
 
     /*      Se abre el archivo      */
-    if (archivo == -1) {
+    if (archivoBitacora == -1) {
         printf("Error: no se pudo abrir el archivo.\n");
         return;
     }
 
     /*      Se solicita el semaforo        */
-    if (fcntl(archivo, F_SETLKW, &semarofoArchivo) == -1) {
+    if (fcntl(archivoBitacora, F_SETLKW, &semarofoArchivo) == -1) {
         printf("Error: no se pudo obtener el semaforo del archivo.\n");
         return;
     }
 
-    write(archivo, pDatos, strlen(pDatos));
+    write(archivoBitacora, pDatos, strlen(pDatos));
 
     /*      se libera el semaforo       */
     semarofoArchivo.l_type = F_UNLCK;  
 
-    if (fcntl(archivo, F_SETLK, &semarofoArchivo) == -1) {
+    if (fcntl(archivoBitacora, F_SETLK, &semarofoArchivo) == -1) {
         printf("Error: no se pudo liberar el semaforo del archivo.\n");
         return;
     }
 }
 
+int procesoBloqueado(int pIdHilo){
+    int posicion = 0;
+
+    obtenerSemaforoMemoria (semaforoIdBloqueado);
+
+    posicion = FirstFit(pIdHilo, 1, bloqueado);
+
+    liberarSemaforoMemoria(semaforoIdBloqueado);
+
+    return posicion;
+}
+
+void procesoDesBloqueado(int pIdHilo, int pPosicion){
+
+    obtenerSemaforoMemoria (semaforoIdBloqueado);
+
+    limpiarMemoria(pPosicion, 0, bloqueado);
+
+    liberarSemaforoMemoria(semaforoIdBloqueado);
+}
 /*          Algoritmos          */
 
-int FirstFit(int pIdProceso, int pTamanoProceso){
- int *ptrDatos = datos;
+int FirstFit(int pIdProceso, int pTamanoProceso, int* ptrDatos){
+ //int *ptrDatos = datos;
  int tamanio = *tamano;
 
  int index = 0; int size = 0; int entra = 0;
@@ -384,8 +449,8 @@ int FirstFit(int pIdProceso, int pTamanoProceso){
       return -1;
 }
 
-int BestFit(int pIdProceso, int pTamanoProceso){
-    int *ptrDatos = datos;
+int BestFit(int pIdProceso, int pTamanoProceso, int* ptrDatos){
+    //int *ptrDatos = datos;
     int tamanio = *tamano;
     int index = 0; int size = 0;
     int *ini = ptrDatos;
@@ -433,8 +498,8 @@ int BestFit(int pIdProceso, int pTamanoProceso){
     else return -1;
 }
 
-int WorstFit(int pIdProceso, int pTamanoProceso){
-    int *ptrDatos = datos;
+int WorstFit(int pIdProceso, int pTamanoProceso, int* ptrDatos){
+    //int *ptrDatos = datos;
     int tamanio = *tamano;
     int index = 0; int size = 0;
     int *ini = ptrDatos;

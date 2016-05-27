@@ -17,14 +17,17 @@ int main(int argc, char *argv[]){
     key_t llaveDatos = 5432;
     key_t llaveTamano = 6543;
     key_t llaveBandera = 7654;
+    key_t llaveBloqueado = 6667;
     
     int shmIdDatos;
     int shmIdTamano;
     int shmIdBandera;
+    int shmIdBloqueado;
 
-    int *datos, *ptroDatos;
+    int *datos;
     int *tamano;
-    int *bandera; 
+    int *bandera;
+    int *bloqueado;
 
     /*      Solicita la memoria del tamano       */
     shmIdTamano = reservarMemoria(llaveTamano, 1);
@@ -38,11 +41,16 @@ int main(int argc, char *argv[]){
     shmIdDatos = reservarMemoria(llaveDatos, (int)*tamano);
     datos = vincularMemoria(shmIdDatos);
 
+    /*      Solicita la memoria de los bloqueados       */
+    shmIdBloqueado = reservarMemoria(llaveBloqueado, 500);
+    bloqueado = vincularMemoria(shmIdBloqueado);
+
     *bandera = 0;
 
     desvincularMemoria(shmIdDatos, datos);
     desvincularMemoria(shmIdBandera, bandera);
     desvincularMemoria(shmIdTamano, tamano);
+    desvincularMemoria(shmIdBloqueado, bloqueado);
 
     return 0;
 }
