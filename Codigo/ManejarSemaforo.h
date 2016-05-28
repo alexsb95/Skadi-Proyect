@@ -74,7 +74,7 @@ void destruirSemaforoMemoria(int pSemaforoId){
         
         /* remove it: */
     if (semctl(pSemaforoId, 0, IPC_RMID, arg) == -1) {
-        printf("Error: No se pudo destruir el semarofo\n");
+        //printf("Error: No se pudo destruir el semarofo\n");
     }
 }
 

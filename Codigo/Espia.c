@@ -127,7 +127,10 @@ char* procesosMemoria (int* pDatos, int pTamano) {
     /*      Crea el string de los procesos      */
     for(contador = 0; contador < indice; contador++){
         strcat(strProcesos, "* \t");
-        strcat(strProcesos, convertirIntAString(listaProcesos[contador])); 
+        if(listaProcesos[contador] == 0)
+            strcat(strProcesos, " No hay ");
+        else
+            strcat(strProcesos, convertirIntAString(listaProcesos[contador])); 
         strcat(strProcesos, "\t *\n");
     }
 

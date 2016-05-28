@@ -17,10 +17,10 @@
 
 #define LIMINFLINEAS 1
 #define LIMSUPLINEAS 10
-#define LIMINFTIELIN 10
-#define LIMSUPTIELIN 30
-#define LIMINFTIEMPO 15
-#define LIMSUPTIEMPO 30
+#define LIMINFTIELIN 20
+#define LIMSUPTIELIN 60
+#define LIMINFTIEMPO 30
+#define LIMSUPTIEMPO 60
 #define NOMBREBITACORA "Bitacora.txt"
 #define NOMBREBLOQUEADO "Bloqueado.txt"
 #define TIEMPOSLEEP 20
@@ -227,8 +227,6 @@ void *CorrerHilo(void *pIdHilo){
         /*      Registra la accion en memoria       */
 		escribirAccionBitacora(idHilo, "Asigna Memoria", obtenerTiempoActual(), posicion, cantidadLineas);
 
-		printf(" posicion %i - cantidadLineas %i\n",posicion, cantidadLineas );
-
 	}else
 		printf("El proceso %i no encontro espacio en la memoria\n",idHilo);
 
@@ -249,8 +247,12 @@ void *CorrerHilo(void *pIdHilo){
 
         printf(" Sacando proceso %i ...\n", idHilo); 
 
+        posicionBloqueado = procesoBloqueado(idHilo);
+
         obtenerSemaforoMemoria (semaforoId);
-        printf("El proceso %i bloqueo la memoria\n", idHilo);   
+        printf("El proceso %i bloqueo la memoria\n", idHilo); 
+
+        procesoDesBloqueado(idHilo, posicionBloqueado);  
 
         /*      Espera si esta en modo lectura      */
         while(semctl(semaforoIdLectura, 0, GETVAL, arg) == 0){
@@ -404,7 +406,7 @@ void agregarDatos(char* pDatos){
     semarofoArchivo.l_type = F_UNLCK;  
 
     if (fcntl(archivoBitacora, F_SETLK, &semarofoArchivo) == -1) {
-        printf("Error: no se pudo liberar el semaforo del archivo.\n");
+        //printf("Error: no se pudo liberar el semaforo del archivo.\n");
         return;
     }
 }
